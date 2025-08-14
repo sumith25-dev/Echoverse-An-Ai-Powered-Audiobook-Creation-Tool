@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EchoVerse - IBM Granite Audiobook Generator</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; }
+    textarea { width: 100%; font-size: 1rem; padding: 0.5rem; }
+    button { margin-top: 1rem; padding: 0.5rem 1rem; font-size: 1rem; }
+    #audioPlayer { margin-top: 1rem; width: 100%; }
+    #message { margin-top: 1rem; font-weight: bold; }
+    label { display: block; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>EchoVerse – An AI-Powered Audiobook Creation Tool</h1>
+  <p>Enter a topic and generate an AI audiobook using IBM Granite 3.1 model.</p>
+
+  <form id="topicForm">
+    <label for="topicInput">Topic or prompt:</label>
+    <textarea id="topicInput" rows="4" placeholder="Type your topic here..." required></textarea>
+
+    <label>
+      <input type="checkbox" id="testModeCheckbox" />
+      Use test mode (skip AI generation, quick TTS test)
+    </label>
+
+    <button type="submit">Generate Audiobook</button>
+  </form>
+
+  <audio id="audioPlayer" controls style="display:none;"></audio>
+  <div id="downloadLink"></div>
+  <div id="message"></div>
+
+  <script>
+    const form = document.getElementById('topicForm');
+    const topicInput = document.getElementById('topicInput');
+    const testModeCheckbox = document.getElementById('testModeCheckbox');
+    const messageDiv = document.getElementById('message');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const downloadLinkDiv = document.getElementById('downloadLink');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Reset UI
+      messageDiv.textContent = '';
+      audioPlayer.style.display = 'none';
+      downloadLinkDiv.innerHTML = '';
+
+      const topic = topicInput.value.trim();
+      if (!topic) {
+        alert("Please enter a topic.");
+        return;
+      }
+
+      messageDiv.textContent = "Generating audiobook... Please wait ⏳";
+
+      try {
+        const requestBody = {
+          topic: topic
+        };
+        if (testModeCheckbox.checked) {
+          requestBody.test = true;
+        }
+
+        const response = await fetch('http://127.0.0.1:5000/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          messageDiv.textContent = `Error: ${err.error || "Unknown error"}`;
+          return;
+        }
+
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.style.display = 'block';
+        audioPlayer.load();
+
+        downloadLinkDiv.innerHTML = `<a href="${audioUrl}" download="audiobook.mp3" style="font-weight:bold;">⬇ Download Audiobook</a>`;
+
+        messageDiv.textContent = testModeCheckbox.checked 
+          ? "Test audio generated successfully!"
+          : "Audiobook generated successfully!";
+
+      } catch (error) {
+        messageDiv.textContent = "Failed to generate audiobook: " + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+
